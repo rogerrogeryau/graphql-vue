@@ -1,59 +1,33 @@
-const {ApolloServer, gql} = require('apollo-server');
+const { ApolloServer } = require("apollo-server");
+const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
 
+const filePath = path.join(__dirname, "typeDefs.gql");
+const typeDefs = fs.readFileSync(filePath, "utf-8");
+const resolvers = require('./resolvers.js')
 
-const todos = [
-    {task:'wash cars', completed:true},
-    {task:'sweep the desk', completed:true},
-    {task:'sleeping', completed:true},
-]
+require("dotenv").config({ path: "variables.env" });
+const User = require("./models/User");
+const Post = require("./models/Post");
 
-
-const typeDefs = gql`
-    type Todo{
-        task:String
-        completed:Boolean
-    }
-
-    type Query{
-        getTodos: [Todo]
-
-    }
-
-    type Mutation{
-        addTodos(task:String, completed:Boolean):Todo
-    }
-`;
-
-const resolvers = {
-    Query:{
-        // getTodos: function(){
-        //     return todos;
-        // }
-
-        // es6 syntax
-        // getTodos: () => {
-        //     return todos
-        // }
-
-        getTodos: () => todos
-    },
-
-    Mutation:{
-        addTodos: (_,args) =>{
-            const todo = {task:args.task, completed: args.completed};
-            todos.push(todo);
-            return todo;
-        }
-    }
-}
-
+mongoose
+  .connect(
+    process.env.MONGO_URI,
+    { useNewUrlParser: true }
+  )
+  .then(() => console.log("DB connected"))
+  .catch(err => console.error(err));
 
 const server = new ApolloServer({
-    // typeDefs:typeDefs
-    typeDefs,
-    resolvers
+  typeDefs,
+  resolvers,
+  context: {
+    User,
+    Post
+  }
 });
 
-server.listen(4500).then(({url}) =>{
-    console.log(`server running on : ${url}`)
+server.listen().then(({ url }) => {
+  console.log(`Server listening on ${url}`);
 });
